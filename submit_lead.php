@@ -1,20 +1,15 @@
 <?php
 // submit_lead.php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\SMTP;
 
-// PHPMailer ফাইলগুলো লোড করা (পাথ ঠিক রাখবেন)
-require 'PHPMailer/Exception.php';
-require 'PHPMailer/PHPMailer.php';
-require 'PHPMailer/SMTP.php';
-
+// ডাটাবেস কানেকশন
 require_once 'db_connect.php';
 
+// ইনপুট ক্লিন করার ফাংশন
 function clean($s) {
     return strip_tags(trim($s));
 }
 
+// সরাসরি ফাইল এক্সেস বন্ধ করা
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
     exit;
@@ -29,17 +24,17 @@ $pc_prob   = clean($_POST['pc_problem'] ?? '');
 $ip        = $_SERVER['REMOTE_ADDR'] ?? '';
 $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-// ২. ডাটাবেসে সেভ করা
 try {
-    // ডুপ্লিকেট চেক
+    // ২. ডুপ্লিকেট চেক (আগে রেজিস্টার করে থাকলে)
     $stmt = $conn->prepare("SELECT id FROM leads WHERE email = :email LIMIT 1");
     $stmt->execute([':email' => $email]);
     if ($stmt->fetch()) {
+        // অলরেডি থাকলে থ্যাংক ইউ পেজে পাঠিয়ে দিবে
         header("Location: thank_you.php");
         exit;
     }
 
-    // ইনসার্ট
+    // ৩. ডাটাবেসে নতুন লিড সেভ করা
     $sql = "INSERT INTO leads (full_name, email, address, supplement_count, pc_problem, ip_address) 
             VALUES (:full_name, :email, :address, :supp, :pc_prob, :ip)";
     $stmt = $conn->prepare($sql);
@@ -53,7 +48,7 @@ try {
     ]);
 
     // =========================================================
-    // 🔥 1. FACEBOOK CAPI (SERVER-SIDE TRACKING) 🔥
+    // 🔥 FACEBOOK CAPI (SERVER-SIDE TRACKING) 🔥
     // =========================================================
     $pixel_id = '4155728038000919';
     $access_token = 'EAALrbheZBSQIBQjlKlZBQu2nSpt3XMmeeP2PhctXCfMWyMHhkh92FZB64CVSrHzZBctyZBj5KYs69W3b2sYnJzTu8XzZCz2KJZAANRRWkRW4oZC5ldQp5WNtbs0s1bPvbtZCSZCK1W0g7cBkm93Veghaj1aW9TsqGLtuqcdXCDuCMkxoinM18xtfNAvA4lPW3XLQZDZD';
@@ -74,64 +69,16 @@ try {
         ]
     ];
 
+    // Facebook API তে ডাটা পাঠানো
     $ch = curl_init('https://graph.facebook.com/v16.0/' . $pixel_id . '/events?access_token=' . $access_token);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($pixel_event_data));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_exec($ch);
+    curl_exec($ch); // ডাটা সেন্ড হলো
     curl_close($ch);
 
-    // =========================================================
-    // 📧 2. SEND EMAIL VIA GMAIL SMTP (PHPMailer) 📧
-    // =========================================================
-    $mail = new PHPMailer(true);
-
-    try {
-        // সার্ভার সেটিংস
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        
-        // ⚠️ আপনার জিমেইল এড্রেস এখানে দিন
-        $mail->Username   = 'texasairwayinstitute@gmail.com'; 
-        
-        // ⚠️ ধাপ ১-এ তৈরি করা ১৬ অক্ষরের App Password এখানে দিন (স্পেস ছাড়া)
-        $mail->Password   = 'xxxx xxxx xxxx xxxx'; 
-        
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-        $mail->Port       = 465;
-
-        // প্রেরক এবং প্রাপক
-        $mail->setFrom('texasairwayinstitute@gmail.com', 'Dr. Victor Enoh');
-        $mail->addAddress($email, $full_name);     // কাস্টমারের ইমেইল
-        $mail->addReplyTo('texasairwayinstitute@gmail.com', 'Information');
-
-        // ইমেইল কন্টেন্ট
-        $mail->isHTML(true);
-        $mail->Subject = 'Registration Confirmed: Longevity Medical Seminar';
-        $mail->Body    = "
-            <h3>Hi $full_name,</h3>
-            <p>Thank you for registering for the <strong>Longevity Medical Seminar</strong>!</p>
-            <p>We have successfully reserved your seat. Here are the event details:</p>
-            <ul>
-                <li><strong>Date:</strong> February 21 @ 12:00 PM CST</li>
-                <li><strong>Format:</strong> Live Online Seminar</li>
-            </ul>
-            <p>We will send you the joining link before the event starts.</p>
-            <br>
-            <p>Best Regards,<br>
-            Dr. Victor Enoh, MD<br>
-            Texas Airway Institute</p>
-        ";
-
-        $mail->send();
-    } catch (Exception $e) {
-        // মেইল না গেলে কোড থামবে না, থ্যাংক ইউ পেজে চলে যাবে
-        // echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
-    }
-
-    // ৫. সাকসেস
+    // ৪. সব কাজ শেষে থ্যাংক ইউ পেজে রিডাইরেক্ট
     header("Location: thank_you.php");
     exit;
 
