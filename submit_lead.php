@@ -97,13 +97,20 @@ try {
         $mail->Subject = "Registration Confirmed: Longevity Medical Seminar";
         
         // Professional Email Template
-        $mailBody = file_get_contents('email_template.html'); // আলাদা ফাইল থেকে ডিজাইন লোড করা
-        
+    // পরিবর্তন করুন:
+// $mailBody = file_get_contents('email_template.html');
+
+// এভাবে লিখুন (Safe & Pro):
+        $mailBody = file_get_contents(__DIR__ . '/email_template.html');
+
+
         // টেমপ্লেটের ভেরিয়েবল রিপ্লেস করা
         $mailBody = str_replace('{{name}}', $full_name, $mailBody);
         $mailBody = str_replace('{{year}}', date('Y'), $mailBody);
         
         $mail->Body = $mailBody;
+        
+
         
         // Plain text version for non-HTML mail clients (Spam filter likes this)
         $mail->AltBody = "Hi $full_name, Thank you for registering. Check your email for details.";
@@ -124,3 +131,4 @@ try {
     die("Something went wrong. Please try again.");
 }
 ?>
+

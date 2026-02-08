@@ -1,15 +1,19 @@
 <?php
 // mail_config.php
 
-// ⚠️ ক্লায়েন্টের বিজনেস ইমেইল (SMTP) ব্যবহার করা সবচেয়ে ভালো।
-// যদি জিমেইল ব্যবহার করেন, তবে অবশ্যই "App Password" লাগবে।
+// সরাসরি ফাইল এক্সেস বন্ধ করা হলো (Security)
+if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
+    header("HTTP/1.0 403 Forbidden");
+    exit("Access Forbidden");
+}
 
-define('SMTP_HOST', 'smtp.gmail.com');      // অথবা ক্লায়েন্টের হোস্টিং হোস্ট (যেমন: mail.domain.com)
-define('SMTP_USER', 'texasairwayinstitute@gmail.com'); // যে ইমেইল থেকে মেইল যাবে
-define('SMTP_PASS', 'xxxx xxxx xxxx xxxx'); // 16 Digit App Password (জিমেইল হলে)
-define('SMTP_PORT', 465);                   // SSL এর জন্য 465, TLS এর জন্য 587
-define('SMTP_SECURE', 'ssl');               // 'ssl' অথবা 'tls'
+// ⚠️ IMPORTANT: নিচের xxxx এর জায়গায় আপনার 16 ডিজিটের App Password বসান
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_USER', 'mdmostakinali686@gmail.com');
+define('SMTP_PASS', 'ilplejbhkdcxktkk'); // <--- এখনি পাসওয়ার্ড রিপ্লেস করুন
+define('SMTP_PORT', 465);
+define('SMTP_SECURE', 'ssl');
 
-define('FROM_NAME', 'Dr. Victor Enoh');     // যা কাস্টমারের ইনবক্সে দেখাবে
+define('FROM_NAME', 'Dr. Victor Enoh');
 define('FROM_EMAIL', SMTP_USER);
 ?>
